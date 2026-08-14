@@ -130,14 +130,16 @@ def predict_fit_hybrid(resume_text, skill_weight=0.3):
         years_experience = 12.0  # dataset median fallback
         notes.append("Years of experience not detected — used dataset median (12) as fallback.")
 
-    if "m sc" in cleaned or "msc" in cleaned or "master" in cleaned:
-        certificate = "M.Sc"
-    elif "b tech" in cleaned or "btech" in cleaned:
-        certificate = "B.Tech"
-    elif "b sc" in cleaned or "bsc" in cleaned or "bachelor" in cleaned:
-        certificate = "B.Sc"
-    elif "hnd" in cleaned:
+    if re.search(r'\bhnd\b|higher national diploma', cleaned):
         certificate = "HND"
+    elif re.search(r'\bnd\b|national diploma', cleaned) and "higher" not in cleaned:
+        certificate = "ND"
+    elif re.search(r'\bm\s?sc\b|master', cleaned):
+        certificate = "M.Sc"
+    elif re.search(r'\bb\s?tech\b', cleaned):
+        certificate = "B.Tech"
+    elif re.search(r'\bb\s?sc\b|bachelor', cleaned):
+        certificate = "B.Sc"
     else:
         certificate = "ND"
         notes.append("Certificate not detected — defaulted to 'ND'.")
