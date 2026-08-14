@@ -1,0 +1,8 @@
+gradio
+joblib
+pandas
+numpy
+scipy
+scikit-learn
+pymupdf
+python-docx
