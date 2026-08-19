@@ -131,9 +131,11 @@ def predict_fit_hybrid(resume_text, skill_weight=0.3):
         notes.append("Years of experience not detected — used dataset median (12) as fallback.")
 
     cert_matches = []
-    if re.search(r'\bhnd\b|higher national diploma', cleaned):
+    if re.search(r'\bhnd\b|higher\s+national\s+diploma', cleaned):
         cert_matches.append("HND")
-    if (re.search(r'\bnd\b|national diploma', cleaned)) and not re.search(r'higher national diploma|\bhnd\b', cleaned):
+    if re.search(r'(?<!higher )national\s+diploma\b', cleaned):
+        cert_matches.append("ND")
+    elif re.search(r'\bnd\b', cleaned) and 'hnd' not in cleaned:
         cert_matches.append("ND")
     if re.search(r'\bm\s?sc\b|master', cleaned):
         cert_matches.append("M.Sc")
