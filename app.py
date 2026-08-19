@@ -130,28 +130,44 @@ def predict_fit_hybrid(resume_text, skill_weight=0.3):
         years_experience = 12.0  # dataset median fallback
         notes.append("Years of experience not detected — used dataset median (12) as fallback.")
 
+    cert_matches = []
     if re.search(r'\bhnd\b|higher national diploma', cleaned):
-        certificate = "HND"
-    elif re.search(r'\bnd\b|national diploma', cleaned) and "higher" not in cleaned:
-        certificate = "ND"
-    elif re.search(r'\bm\s?sc\b|master', cleaned):
-        certificate = "M.Sc"
-    elif re.search(r'\bb\s?tech\b', cleaned):
-        certificate = "B.Tech"
-    elif re.search(r'\bb\s?sc\b|bachelor', cleaned):
-        certificate = "B.Sc"
+        cert_matches.append("HND")
+    if (re.search(r'\bnd\b|national diploma', cleaned)) and not re.search(r'higher national diploma|\bhnd\b', cleaned):
+        cert_matches.append("ND")
+    if re.search(r'\bm\s?sc\b|master', cleaned):
+        cert_matches.append("M.Sc")
+    if re.search(r'\bb\s?tech\b', cleaned):
+        cert_matches.append("B.Tech")
+    if re.search(r'\bb\s?sc\b|bachelor', cleaned):
+        cert_matches.append("B.Sc")
+
+    cert_rank = {"ND": 1, "HND": 2, "B.Sc": 2.5, "B.Tech": 3, "M.Sc": 4}
+    if cert_matches:
+        # Highest one — used for display purposes
+        certificate = max(cert_matches, key=lambda c: cert_rank[c])
+        # Sum ALL matched certificates for scoring, capped at 4.0 (max the model was trained on)
+        cert_score_combined = min(sum(cert_rank[c] for c in set(cert_matches)), 4.0)
     else:
         certificate = "ND"
+        cert_score_combined = cert_rank["ND"]
         notes.append("Certificate not detected — defaulted to 'ND'.")
 
-    if "coren" in cleaned:
-        professional_certification = "COREN"
-    elif "fnse" in cleaned or "fnice" in cleaned:
-        professional_certification = "FNSE"
-    elif "mnse" in cleaned or "mnice" in cleaned:
-        professional_certification = "MNSE"
+    prof_cert_matches = []
+    if re.search(r'\bcoren\b', cleaned):
+        prof_cert_matches.append("COREN")
+    if re.search(r'\bfnse\b|\bfnice\b', cleaned):
+        prof_cert_matches.append("FNSE")
+    if re.search(r'\bmnse\b|\bmnice\b', cleaned):
+        prof_cert_matches.append("MNSE")
+
+    prof_cert_rank = {"MNSE": 2, "FNSE": 3, "COREN": 4}
+    if prof_cert_matches:
+        professional_certification = max(prof_cert_matches, key=lambda c: prof_cert_rank[c])
+        prof_cert_score_combined = min(sum(prof_cert_rank[c] for c in set(prof_cert_matches)), 4.0)
     else:
         professional_certification = "None"
+        prof_cert_score_combined = 0
 
     if "executive" in cleaned or "director" in cleaned:
         current_level = "Executive"
@@ -193,7 +209,9 @@ def predict_fit_hybrid(resume_text, skill_weight=0.3):
         "predicted_grade": predicted_label,
         "years_experience_used": years_experience,
         "certificate_used": certificate,
+        "certificate_all_detected": cert_matches if len(cert_matches) > 1 else None,
         "professional_certification_used": professional_certification,
+        "professional_certification_all_detected": prof_cert_matches if len(prof_cert_matches) > 1 else None,
         "current_level_used": current_level,
         "model_fit_probability": round(model_fit_prob * 100, 1),
         "skill_match_score": round(skill_score * 100, 1),
@@ -222,12 +240,20 @@ def screen_resume(file):
 
     grade_display = f"## Predicted Grade: **{result['predicted_grade']}**"
 
+    cert_display = result['certificate_used']
+    if result['certificate_all_detected']:
+        cert_display += f" (all found: {', '.join(result['certificate_all_detected'])} — highest used for scoring)"
+
+    prof_cert_display = result['professional_certification_used']
+    if result['professional_certification_all_detected']:
+        prof_cert_display += f" (all found: {', '.join(result['professional_certification_all_detected'])} — highest used for scoring)"
+
     details = f"""
 | Metric | Value |
 |---|---|
 | Years of Experience (used) | {result['years_experience_used']} |
-| Certificate (detected) | {result['certificate_used']} |
-| Professional Certification (detected) | {result['professional_certification_used']} |
+| Certificate (detected) | {cert_display} |
+| Professional Certification (detected) | {prof_cert_display} |
 | Current Level (detected) | {result['current_level_used']} |
 | Model Fit Probability (Excellent+Good) | {result['model_fit_probability']}% |
 | Skill Match Score | {result['skill_match_score']}% |
