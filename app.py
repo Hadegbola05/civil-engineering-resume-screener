@@ -211,9 +211,9 @@ def predict_fit_hybrid(resume_text, skill_weight=0.3):
         "predicted_grade": predicted_label,
         "years_experience_used": years_experience,
         "certificate_used": certificate,
-        "certificate_all_detected": cert_matches if len(cert_matches) > 1 else None,
+        "certificate_all_detected": sorted(set(cert_matches), key=lambda c: cert_rank[c]) if cert_matches else [certificate],
         "professional_certification_used": professional_certification,
-        "professional_certification_all_detected": prof_cert_matches if len(prof_cert_matches) > 1 else None,
+        "professional_certification_all_detected": sorted(set(prof_cert_matches), key=lambda c: prof_cert_rank[c]) if prof_cert_matches else [professional_certification],
         "current_level_used": current_level,
         "model_fit_probability": round(model_fit_prob * 100, 1),
         "skill_match_score": round(skill_score * 100, 1),
@@ -242,13 +242,8 @@ def screen_resume(file):
 
     grade_display = f"## Predicted Grade: **{result['predicted_grade']}**"
 
-    cert_display = result['certificate_used']
-    if result['certificate_all_detected']:
-        cert_display += f" (all found: {', '.join(result['certificate_all_detected'])} — highest used for scoring)"
-
-    prof_cert_display = result['professional_certification_used']
-    if result['professional_certification_all_detected']:
-        prof_cert_display += f" (all found: {', '.join(result['professional_certification_all_detected'])} — highest used for scoring)"
+    cert_display = ', '.join(result['certificate_all_detected'])
+    prof_cert_display = ', '.join(result['professional_certification_all_detected'])
 
     details = f"""
 | Metric | Value |
